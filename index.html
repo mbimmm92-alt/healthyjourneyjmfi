@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard Lomba Lari Virtual 2026 (Real-Time Cloud)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    body {
+      background: radial-gradient(circle at top left, #1e1b4b 0%, #0f172a 40%, #020617 100%);
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gold-gradient { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
+    .silver-gradient { background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); }
+    .bronze-gradient { background: linear-gradient(135deg, #f97316 0%, #c2410c 100%); }
+    .emerald-gradient { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
+    .cyan-gradient { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); }
+    .purple-gradient { background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%); }
+    .glow-gold { box-shadow: 0 0 25px rgba(251, 191, 36, 0.35); }
+    .tab-btn-active {
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+    }
+  </style>
+
+  <!-- Firebase Realtime Cloud Integration -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      databaseURL: "https://virtualrun2026-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const ADMIN_PIN = "080993";
+    let isAdmin = false;
+    let currentTab = "individu";
+    let cachedRunners = [];
+    let cachedTeamPoints = {};
+
+    // DATA LENGKAP 41 PESERTA ASLI
+    const defaultRunners = [
+      { bib: "B034", nama: "Dimas Septian R", tim: "ADDES", km: 157.5, act: 12 },
+      { bib: "B013", nama: "Anjelin Hutauruk", tim: "TIMPA TIMPO", km: 140.94, act: 15 },
+      { bib: "B033", nama: "Ardi Prasetyo", tim: "ADDES", km: 127.22, act: 11 },
+      { bib: "B001", nama: "Riki Nuraripin", tim: "Pelarian", km: 120.77, act: 18 },
+      { bib: "B004", nama: "Avril Angelin", tim: "Pelarian", km: 119.68, act: 16 },
+      { bib: "B028", nama: "Titik Murwani", tim: "NAT", km: 102.74, act: 14 },
+      { bib: "B035", nama: "Eko Prasetyo", tim: "ADDES", km: 99.29, act: 10 },
+      { bib: "B014", nama: "Firda Amalia", tim: "TIMPA TIMPO", km: 98.36, act: 15 },
+      { bib: "B029", nama: "Camelia Falisa", tim: "NAT", km: 97.77, act: 12 },
+      { bib: "B016", nama: "Silviana Andriyany", tim: "TIMPA TIMPO", km: 83.98, act: 10 },
+      { bib: "B032", nama: "Sandy", tim: "ADDES", km: 82.08, act: 9 },
+      { bib: "B036", nama: "Dwi Aryani", tim: "ADDES", km: 80.58, act: 11 },
+      { bib: "B005", nama: "Marvel Yogasara", tim: "Pelarian", km: 78.69, act: 12 },
+      { bib: "B003", nama: "Agus Kristian", tim: "Pelarian", km: 76.52, act: 10 },
+      { bib: "B002", nama: "Marnita Elfinta", tim: "Pelarian", km: 72.13, act: 11 },
+      { bib: "B018", nama: "Fransiscus Adi", tim: "The Jompo's", km: 66.65, act: 13 },
+      { bib: "B012", nama: "Thimoty Daud Kurniawan", tim: "TIMPA TIMPO", km: 52.83, act: 6 },
+      { bib: "B030", nama: "Nova Karisoh", tim: "NAT", km: 46.52, act: 14 },
+      { bib: "B019", nama: "Rino Bayu", tim: "The Jompo's", km: 43.56, act: 9 },
+      { bib: "B017", nama: "Gunawan Sukirno", tim: "The Jompo's", km: 40.68, act: 10 },
+      { bib: "B015", nama: "Desti Rahmawati", tim: "TIMPA TIMPO", km: 31.83, act: 6 },
+      { bib: "B037", nama: "Archie Ananda Surya", tim: "COPO", km: 29.68, act: 7 },
+      { bib: "B025", nama: "Mita Meilina Putri", tim: "Wacana", km: 25.75, act: 7 },
+      { bib: "B021", nama: "Ang Amelia", tim: "The Jompo's", km: 25.29, act: 7 },
+      { bib: "B041", nama: "Muhammad Dani Arya", tim: "COPO", km: 21.42, act: 7 },
+      { bib: "B031", nama: "Novita Andriani", tim: "NAT", km: 20.92, act: 4 },
+      { bib: "B038", nama: "Yunanda Pratama", tim: "COPO", km: 20.05, act: 4 },
+      { bib: "B027", nama: "Aidilla Fauzia", tim: "NAT", km: 16.48, act: 9 },
+      { bib: "B039", nama: "Rizky Maulana", tim: "COPO", km: 12.30, act: 2 },
+      { bib: "B026", nama: "Sophie Hasianna", tim: "Wacana", km: 11.66, act: 6 },
+      { bib: "B024", nama: "Winda", tim: "Wacana", km: 10.40, act: 4 },
+      { bib: "B023", nama: "Dhabhitah Balqis Iswara", tim: "Wacana", km: 10.34, act: 2 },
+      { bib: "B022", nama: "Audy Emilia Aisyah", tim: "Wacana", km: 9.08, act: 6 },
+      { bib: "B040", nama: "Stefanus Susetyawan Sembada", tim: "COPO", km: 7.96, act: 2 },
+      { bib: "B020", nama: "Lidwina", tim: "The Jompo's", km: 7.18, act: 3 },
+      { bib: "B010", nama: "Abdul Rosyid", tim: "JDJ", km: 5.19, act: 2 },
+      { bib: "B009", nama: "Rezki Ayu", tim: "JDJ", km: 1.10, act: 1 },
+      { bib: "B006", nama: "Delaya Sudirman", tim: "JDJ", km: 0, act: 0 },
+      { bib: "B007", nama: "Yunistira", tim: "JDJ", km: 0, act: 0 },
+      { bib: "B008", nama: "Nira", tim: "JDJ", km: 0, act: 0 },
+      { bib: "B011", nama: "Galih Satria Aji Dwiyana", tim: "JDJ", km: 0, act: 0 }
+    ];
+
+    const defaultTeamPoints = {
+      "ADDES": 0, "TIMPA TIMPO": 0, "Pelarian": 0, "NAT": 0,
+      "The Jompo's": 0, "COPO": 0, "Wacana": 0, "JDJ": 0
+    };
+
+    const dbRef = ref(db, 'virtualRunData');
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.runners && data.runners.length > 0) {
+        cachedRunners = data.runners;
+        cachedTeamPoints = data.teamPoints || defaultTeamPoints;
+      } else {
+        cachedRunners = defaultRunners;
+        cachedTeamPoints = defaultTeamPoints;
+        saveToCloud(); // Otomatis isi cloud jika kosong
+      }
+      renderData();
+      if (isAdmin) populateQuickSelectRunners();
+    });
+
+    function saveToCloud() {
+      set(dbRef, {
+        runners: cachedRunners,
+        teamPoints: cachedTeamPoints
+      });
+    }
+
+    window.switchTab = function(tab) {
+      currentTab = tab;
+      const indBtn = document.getElementById("tabIndividuBtn");
+      const timBtn = document.getElementById("tabTimBtn");
+
+      if (tab === "individu") {
+        indBtn.className = "flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition flex items-center justify-center gap-2 tab-btn-active";
+        timBtn.className = "flex-1 py-3 px-4 rounded-xl text-sm font-extrabold text-slate-400 hover:text-white transition flex items-center justify-center gap-2";
+      } else {
+        timBtn.className = "flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition flex items-center justify-center gap-2 tab-btn-active";
+        indBtn.className = "flex-1 py-3 px-4 rounded-xl text-sm font-extrabold text-slate-400 hover:text-white transition flex items-center justify-center gap-2";
+      }
+      renderData();
+    }
+
+    window.handleAuthAction = function() {
+      if (!isAdmin) {
+        const inputPIN = prompt("Masukkan PIN Admin:");
+        if (inputPIN === ADMIN_PIN) {
+          isAdmin = true;
+          alert("Login Admin Berhasil!");
+          updateUIAuthStatus();
+        } else if (inputPIN !== null) {
+          alert("PIN Salah! Akses ditolak.");
+        }
+      } else {
+        if (confirm("Keluar dari Mode Admin?")) {
+          isAdmin = false;
+          updateUIAuthStatus();
+        }
+      }
+    }
+
+    function updateUIAuthStatus() {
+      const adminForm = document.getElementById("adminFormSection");
+      const adminBadge = document.getElementById("adminBadge");
+      const authBtnText = document.getElementById("authBtnText");
+      const authIcon = document.getElementById("authIcon");
+
+      if (isAdmin) {
+        adminForm.classList.remove("hidden");
+        adminBadge.classList.remove("hidden");
+        authBtnText.innerText = "Logout Admin";
+        authIcon.className = "fa-solid fa-unlock text-emerald-400";
+        populateQuickSelectRunners();
+      } else {
+        adminForm.classList.add("hidden");
+        adminBadge.classList.add("hidden");
+        authBtnText.innerText = "Admin Login";
+        authIcon.className = "fa-solid fa-lock text-amber-400";
+      }
+      renderData();
+    }
+
+    function populateQuickSelectRunners() {
+      const select = document.getElementById("quickSelectRunner");
+      if(!select) return;
+      select.innerHTML = `<option value="">-- Pilih Peserta --</option>`;
+      const sorted = [...cachedRunners].sort((a, b) => a.nama.localeCompare(b.nama));
+      sorted.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.bib;
+        opt.innerText = `[${r.bib}] ${r.nama} (${r.km} KM)`;
+        select.appendChild(opt);
+      });
+    }
+
+    window.saveQuickKm = function(e) {
+      e.preventDefault();
+      if (!isAdmin) return;
+
+      const bib = document.getElementById("quickSelectRunner").value;
+      const mode = document.getElementById("quickKmMode").value;
+      const amount = parseFloat(document.getElementById("quickKmValue").value);
+
+      if (!bib || isNaN(amount)) return;
+
+      const runner = cachedRunners.find(r => r.bib === bib);
+      if (runner) {
+        if (mode === "add") {
+          runner.km = parseFloat((runner.km + amount).toFixed(2));
+          runner.act += 1;
+        } else {
+          runner.km = parseFloat(amount.toFixed(2));
+        }
+
+        saveToCloud();
+        document.getElementById("quickKmForm").reset();
+        alert(`Berhasil memperbarui KM untuk ${runner.nama}!`);
+      }
+    }
+
+    window.saveRunner = function(e) {
+      e.preventDefault();
+      if (!isAdmin) return;
+
+      const bib = document.getElementById("inputBIB").value.trim().toUpperCase();
+      const nama = document.getElementById("inputNama").value.trim();
+      const tim = document.getElementById("inputTim").value.trim();
+      const km = parseFloat(document.getElementById("inputKM").value);
+      const act = parseInt(document.getElementById("inputAct").value);
+
+      const existingIndex = cachedRunners.findIndex(r => r.bib === bib);
+      if (existingIndex !== -1) {
+        cachedRunners[existingIndex] = { bib, nama, tim, km, act };
+      } else {
+        cachedRunners.push({ bib, nama, tim, km, act });
+      }
+
+      if (cachedTeamPoints[tim] === undefined) cachedTeamPoints[tim] = 0;
+
+      saveToCloud();
+      document.getElementById("runnerForm").reset();
+      alert("Data peserta berhasil disimpan!");
+    }
+
+    window.saveTeamPoints = function(e) {
+      e.preventDefault();
+      if (!isAdmin) return;
+
+      const tim = document.getElementById("inputNamaTim").value.trim();
+      const points = parseInt(document.getElementById("inputPoinTim").value);
+
+      cachedTeamPoints[tim] = points;
+
+      saveToCloud();
+      document.getElementById("teamForm").reset();
+      alert(`Poin untuk tim ${tim} berhasil diperbarui!`);
+    }
+
+    window.editTeamPointsPrompt = function(timName) {
+      if (!isAdmin) return;
+      const currentPts = cachedTeamPoints[timName] || 0;
+      const newPts = prompt(`Masukkan jumlah poin baru untuk Tim ${timName}:`, currentPts);
+      if (newPts !== null && newPts.trim() !== "" && !isNaN(newPts)) {
+        cachedTeamPoints[timName] = parseInt(newPts);
+        saveToCloud();
+      }
+    }
+
+    window.editRunner = function(bib) {
+      if (!isAdmin) return;
+      const runner = cachedRunners.find(r => r.bib === bib);
+      if (runner) {
+        document.getElementById("inputBIB").value = runner.bib;
+        document.getElementById("inputNama").value = runner.nama;
+        document.getElementById("inputTim").value = runner.tim;
+        document.getElementById("inputKM").value = runner.km;
+        document.getElementById("inputAct").value = runner.act;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    window.deleteRunner = function(bib) {
+      if (!isAdmin) return;
+      if (confirm(`Hapus data peserta ${bib}?`)) {
+        cachedRunners = cachedRunners.filter(r => r.bib !== bib);
+        saveToCloud();
+      }
+    }
+
+    window.shareLink = function() {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Link berhasil disalin! Bagikan ke grup peserta.");
+    }
+
+    function getTeamBadgeColor(tim) {
+      const colors = {
+        'ADDES': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        'TIMPA TIMPO': 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+        'Pelarian': 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+        'NAT': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        "The Jompo's": 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        'COPO': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        'Wacana': 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+        'JDJ': 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+      };
+      return colors[tim] || 'bg-slate-700/50 text-slate-300 border-slate-600';
+    }
+
+    function renderData() {
+      const searchInputElem = document.getElementById("searchInput");
+      const search = searchInputElem ? searchInputElem.value.toLowerCase() : "";
+      const thead = document.getElementById("tableHeader");
+      const tbody = document.getElementById("leaderboardBody");
+      
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      let totalKMVal = 0;
+      let totalActVal = 0;
+      cachedRunners.forEach(r => { totalKMVal += r.km; totalActVal += r.act; });
+
+      document.getElementById("totalRunners").innerText = cachedRunners.length;
+      document.getElementById("totalDistance").innerText = `${totalKMVal.toFixed(2)} KM`;
+      document.getElementById("totalActivities").innerText = totalActVal;
+
+      if (currentTab === "individu") {
+        thead.innerHTML = `
+          <tr>
+            <th class="py-4 px-5 text-center">Rank</th>
+            <th class="py-4 px-5">BIB</th>
+            <th class="py-4 px-5">Nama Peserta</th>
+            <th class="py-4 px-5">Divisi / Tim</th>
+            <th class="py-4 px-5 text-right">Total KM</th>
+            <th class="py-4 px-5 text-center">Aktivitas Valid</th>
+            ${isAdmin ? `<th class="py-4 px-5 text-center">Aksi Admin</th>` : ''}
+          </tr>
+        `;
+
+        cachedRunners.sort((a, b) => b.km - a.km || b.act - a.act);
+
+        let rankCount = 1;
+        cachedRunners.forEach((r) => {
+          const isMatch = r.nama.toLowerCase().includes(search) || 
+                          r.bib.toLowerCase().includes(search) || 
+                          r.tim.toLowerCase().includes(search);
+
+          if (!isMatch) return;
+
+          const currentRank = r.km > 0 ? rankCount++ : "-";
+          let rankBadge = `<span class="font-extrabold text-slate-400">${currentRank}</span>`;
+          let rowStyle = "hover:bg-slate-800/40 transition";
+
+          if (currentRank === 1) {
+            rankBadge = `<span class="gold-gradient glow-gold text-slate-950 font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-crown"></i> 1</span>`;
+            rowStyle = "bg-amber-500/10 hover:bg-amber-500/15 border-l-4 border-amber-400 transition";
+          } else if (currentRank === 2) {
+            rankBadge = `<span class="silver-gradient text-slate-950 font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-medal"></i> 2</span>`;
+          } else if (currentRank === 3) {
+            rankBadge = `<span class="bronze-gradient text-white font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-medal"></i> 3</span>`;
+          }
+
+          const tr = document.createElement("tr");
+          tr.className = rowStyle;
+          tr.innerHTML = `
+            <td class="py-4 px-5 text-center">${rankBadge}</td>
+            <td class="py-4 px-5 font-mono font-extrabold text-cyan-400">${r.bib}</td>
+            <td class="py-4 px-5 font-bold text-white">${r.nama}</td>
+            <td class="py-4 px-5"><span class="px-3 py-1 rounded-full border text-xs font-bold ${getTeamBadgeColor(r.tim)}">${r.tim}</span></td>
+            <td class="py-4 px-5 text-right font-black text-emerald-400 font-mono text-base">${r.km.toLocaleString('id-ID')} KM</td>
+            <td class="py-4 px-5 text-center font-bold text-slate-300 font-mono">${r.act}</td>
+            ${isAdmin ? `
+              <td class="py-4 px-5 text-center">
+                <button onclick="editRunner('${r.bib}')" class="text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-1.5 rounded-lg hover:bg-cyan-500/40 mr-1 font-bold"><i class="fa-solid fa-pen"></i> Edit</button>
+                <button onclick="deleteRunner('${r.bib}')" class="text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/40 font-bold"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            ` : ''}
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } else {
+        thead.innerHTML = `
+          <tr>
+            <th class="py-4 px-5 text-center">Rank Tim</th>
+            <th class="py-4 px-5">Nama Tim / Divisi</th>
+            <th class="py-4 px-5 text-center">Jumlah Anggota</th>
+            <th class="py-4 px-5 text-right">Total Poin Tim</th>
+            ${isAdmin ? `<th class="py-4 px-5 text-center">Aksi Admin</th>` : ''}
+          </tr>
+        `;
+
+        const teamMap = {};
+        cachedRunners.forEach(r => {
+          if (!teamMap[r.tim]) {
+            teamMap[r.tim] = { nama: r.tim, members: 0, points: cachedTeamPoints[r.tim] || 0 };
+          }
+          teamMap[r.tim].members += 1;
+        });
+
+        Object.keys(cachedTeamPoints).forEach(timName => {
+          if (!teamMap[timName]) {
+            teamMap[timName] = { nama: timName, members: 0, points: cachedTeamPoints[timName] || 0 };
+          } else {
+            teamMap[timName].points = cachedTeamPoints[timName];
+          }
+        });
+
+        const teams = Object.values(teamMap).sort((a, b) => b.points - a.points);
+
+        let rankCount = 1;
+        teams.forEach((t) => {
+          if (search && !t.nama.toLowerCase().includes(search)) return;
+
+          const currentRank = rankCount++;
+          let rankBadge = `<span class="font-bold text-slate-400">${currentRank}</span>`;
+          let rowStyle = "hover:bg-slate-800/40 transition";
+
+          if (currentRank === 1) {
+            rankBadge = `<span class="gold-gradient glow-gold text-slate-950 font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-trophy"></i> 1</span>`;
+            rowStyle = "bg-amber-500/10 hover:bg-amber-500/15 border-l-4 border-amber-400 transition";
+          } else if (currentRank === 2) {
+            rankBadge = `<span class="silver-gradient text-slate-950 font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-medal"></i> 2</span>`;
+          } else if (currentRank === 3) {
+            rankBadge = `<span class="bronze-gradient text-white font-black px-3 py-1 rounded-full text-xs flex items-center justify-center gap-1"><i class="fa-solid fa-medal"></i> 3</span>`;
+          }
+
+          const tr = document.createElement("tr");
+          tr.className = rowStyle;
+          tr.innerHTML = `
+            <td class="py-4 px-5 text-center">${rankBadge}</td>
+            <td class="py-4 px-5 font-black text-white text-base"><span class="px-3 py-1 rounded-full border text-xs font-extrabold ${getTeamBadgeColor(t.nama)}">${t.nama}</span></td>
+            <td class="py-4 px-5 text-center font-bold text-cyan-400 font-mono">${t.members} Peserta</td>
+            <td class="py-4 px-5 text-right font-black text-amber-400 font-mono text-lg">${t.points.toLocaleString('id-ID')} Pts</td>
+            ${isAdmin ? `
+              <td class="py-4 px-5 text-center">
+                <button onclick="editTeamPointsPrompt('${t.nama}')" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-lg hover:bg-amber-500/40 font-bold"><i class="fa-solid fa-pen"></i> Edit Poin</button>
+              </td>
+            ` : ''}
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+  </script>
+</head>
+<body class="p-3 md:p-8 min-h-screen">
+
+  <!-- Header Section -->
+  <div class="max-w-6xl mx-auto mb-6 glass-card p-4 md:p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 md:w-14 md:h-14 cyan-gradient rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg shadow-cyan-500/30">
+        <i class="fa-solid fa-bolt-lightning"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold tracking-wide gradient-text">VIRTUAL RUN 2026</h1>
+        <p class="text-xs md:text-sm text-slate-400 font-semibold flex items-center gap-2 mt-0.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Cloud Real-Time
+        </p>
+      </div>
+    </div>
+    
+    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+      <span id="adminBadge" class="hidden bg-emerald-500/20 text-emerald-300 text-xs px-3.5 py-2 rounded-xl border border-emerald-500/40 font-bold flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved"></i> Mode Admin
+      </span>
+
+      <button id="authBtn" onclick="handleAuthAction()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs md:text-sm px-4 py-2.5 rounded-xl border border-slate-700 transition font-bold flex items-center gap-2">
+        <i id="authIcon" class="fa-solid fa-lock text-amber-400"></i> <span id="authBtnText">Admin Login</span>
+      </button>
+
+      <button onclick="shareLink()" class="purple-gradient text-white font-bold text-xs md:text-sm px-4 py-2.5 rounded-xl hover:opacity-90 transition shadow-lg shadow-purple-500/30 flex items-center gap-2">
+        <i class="fa-solid fa-share-nodes"></i> Bagikan
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="glass-card p-5 rounded-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Total Peserta</p>
+          <p id="totalRunners" class="text-3xl font-black text-white mt-1">0</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl purple-gradient flex items-center justify-center text-white text-xl">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-5 rounded-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Total Jarak</p>
+          <p id="totalDistance" class="text-3xl font-black text-cyan-400 mt-1">0 KM</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl cyan-gradient flex items-center justify-center text-white text-xl">
+          <i class="fa-solid fa-route"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card p-5 rounded-2xl">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Aktivitas Valid</p>
+          <p id="totalActivities" class="text-3xl font-black text-emerald-400 mt-1">0</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl emerald-gradient flex items-center justify-center text-white text-xl">
+          <i class="fa-solid fa-person-running"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Switcher -->
+  <div class="max-w-6xl mx-auto mb-5 p-1.5 glass-card rounded-2xl flex gap-2">
+    <button id="tabIndividuBtn" onclick="switchTab('individu')" class="flex-1 py-3 px-4 rounded-xl text-sm font-extrabold transition flex items-center justify-center gap-2 tab-btn-active">
+      <i class="fa-solid fa-user"></i> Klasemen Individu
+    </button>
+    <button id="tabTimBtn" onclick="switchTab('tim')" class="flex-1 py-3 px-4 rounded-xl text-sm font-extrabold text-slate-400 hover:text-white transition flex items-center justify-center gap-2">
+      <i class="fa-solid fa-trophy"></i> Klasemen Tim (Poin)
+    </button>
+  </div>
+
+  <!-- Admin Forms Section -->
+  <div id="adminFormSection" class="max-w-6xl mx-auto mb-6 glass-card p-5 rounded-2xl border border-emerald-500/30 hidden">
+    
+    <!-- Update Cepat KM Pelari -->
+    <h2 class="text-sm font-extrabold text-emerald-400 mb-3 flex items-center gap-2 uppercase tracking-wide">
+      <i class="fa-solid fa-person-running text-base"></i> Update Cepat KM Peserta
+    </h2>
+    <form id="quickKmForm" onsubmit="saveQuickKm(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <select id="quickSelectRunner" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-400">
+        <option value="">-- Pilih Peserta --</option>
+      </select>
+      <select id="quickKmMode" class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-400">
+        <option value="add">+ Tambahkan KM Baru</option>
+        <option value="set">= Set Ulang Total KM</option>
+      </select>
+      <input type="number" step="0.01" id="quickKmValue" placeholder="Jumlah KM" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-400">
+      <button type="submit" class="emerald-gradient text-white font-extrabold py-3 rounded-xl hover:opacity-90 transition shadow-lg shadow-emerald-500/20">
+        Update KM
+      </button>
+    </form>
+
+    <div class="border-t border-slate-700/60 my-5"></div>
+
+    <!-- Tambah / Edit Lengkap Data Peserta -->
+    <h2 class="text-sm font-extrabold text-purple-400 mb-3 flex items-center gap-2 uppercase tracking-wide">
+      <i class="fa-solid fa-user-plus text-base"></i> Tambah / Edit Lengkap Data Peserta
+    </h2>
+    <form id="runnerForm" onsubmit="saveRunner(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <input type="text" id="inputBIB" placeholder="BIB (Contoh: B042)" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-400">
+      <input type="text" id="inputNama" placeholder="Nama Lengkap" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-400">
+      <input type="text" id="inputTim" placeholder="Divisi / Tim" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-400">
+      <input type="number" step="0.01" id="inputKM" placeholder="Total KM" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-400">
+      <input type="number" id="inputAct" placeholder="Aktivitas Valid" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-purple-400">
+      <button type="submit" class="md:col-span-5 purple-gradient text-white font-extrabold py-3 rounded-xl hover:opacity-90 transition shadow-lg shadow-purple-500/20">
+        Simpan Profil Peserta
+      </button>
+    </form>
+
+    <div class="border-t border-slate-700/60 my-5"></div>
+
+    <!-- Input Poin Tim -->
+    <h2 class="text-sm font-extrabold text-cyan-400 mb-3 flex items-center gap-2 uppercase tracking-wide">
+      <i class="fa-solid fa-award text-base"></i> Input / Edit Poin Tim
+    </h2>
+    <form id="teamForm" onsubmit="saveTeamPoints(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <input type="text" id="inputNamaTim" placeholder="Nama Tim (Contoh: ADDES)" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+      <input type="number" step="1" id="inputPoinTim" placeholder="Jumlah Poin Tim" required class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400">
+      <button type="submit" class="cyan-gradient text-white font-extrabold py-3 rounded-xl hover:opacity-90 transition shadow-lg shadow-cyan-500/20">
+        Simpan Poin Tim
+      </button>
+    </form>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="max-w-6xl mx-auto mb-5">
+    <div class="relative">
+      <i class="fa-solid fa-magnifying-glass absolute left-4 top-4 text-slate-400 text-sm"></i>
+      <input type="text" id="searchInput" oninput="renderData()" placeholder="Cari berdasarkan Nama, BIB, atau Tim..." class="w-full glass-card rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+    </div>
+  </div>
+
+  <!-- Table Landscape View -->
+  <div class="max-w-6xl mx-auto glass-card rounded-2xl overflow-x-auto shadow-xl">
+    <table class="w-full text-left text-sm whitespace-nowrap">
+      <thead id="tableHeader" class="bg-slate-900/80 text-slate-400 text-xs uppercase font-extrabold border-b border-slate-800"></thead>
+      <tbody id="leaderboardBody" class="divide-y divide-slate-800/60"></tbody>
+    </table>
+  </div>
+</body>
+</html>
